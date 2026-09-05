@@ -15,7 +15,7 @@ export default function ProductForm({ onProductSaved }: ProductFormProps) {
   const [mrp, setMrp] = useState('');
   const [buyingPrice, setBuyingPrice] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
-  const [openingStock, setOpeningStock] = useState('');
+  const [openingStock, setOpeningStock] = useState('1');
   const [expiry, setExpiry] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [message, setMessage] = useState('');
@@ -42,7 +42,7 @@ export default function ProductForm({ onProductSaved }: ProductFormProps) {
     setMrp('');
     setBuyingPrice('');
     setSellingPrice('');
-    setOpeningStock('');
+    setOpeningStock('1');
     setExpiry('');
     setEditMode(false);
     setEditId(null);
@@ -58,10 +58,30 @@ export default function ProductForm({ onProductSaved }: ProductFormProps) {
     }, 2500);
   };
 
+  const checkBarcodeExists = async (barcodeValue: string) => {
+    const trimmed = barcodeValue.trim();
+    if (!trimmed) return;
+    const existing = await getProductByBarcode(trimmed);
+    if (existing && !(editMode && existing.id === editId)) {
+      showMessage(`Barcode already exists: ${existing.productName}`, 'error');
+    }
+  };
+
   const handleScan = (scannedBarcode: string) => {
     setBarcode(scannedBarcode);
     setShowScanner(false);
+    void checkBarcodeExists(scannedBarcode);
     nameRef.current?.focus();
+  };
+
+  const handleMrpChange = (value: string) => {
+    setMrp(value);
+    if (buyingPrice === '') setBuyingPrice(value);
+    if (sellingPrice === '') setSellingPrice(value);
+  };
+
+  const resolvePrice = (rawValue: string, parsedMrp: number): number => {
+    return rawValue.trim() === '' ? parsedMrp : parseFloat(rawValue);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,8 +90,8 @@ export default function ProductForm({ onProductSaved }: ProductFormProps) {
     const trimmedBarcode = barcode.trim();
     const trimmedName = productName.trim();
     const parsedMrp = parseFloat(mrp);
-    const parsedBuy = parseFloat(buyingPrice);
-    const parsedSell = parseFloat(sellingPrice);
+    const parsedBuy = resolvePrice(buyingPrice, parsedMrp);
+    const parsedSell = resolvePrice(sellingPrice, parsedMrp);
     const parsedStock = parseInt(openingStock, 10);
 
     if (!trimmedBarcode) {
@@ -224,6 +244,7 @@ export default function ProductForm({ onProductSaved }: ProductFormProps) {
               inputMode="text"
               value={barcode}
               onChange={(e) => setBarcode(e.target.value)}
+              onBlur={() => { void checkBarcodeExists(barcode); }}
               onKeyDown={(e) => handleKeyDown(e, nameRef)}
               placeholder="Scan or type barcode"
               autoComplete="off"
@@ -261,14 +282,14 @@ export default function ProductForm({ onProductSaved }: ProductFormProps) {
             step="0.01"
             min="0"
             value={mrp}
-            onChange={(e) => setMrp(e.target.value)}
+            onChange={(e) => handleMrpChange(e.target.value)}
             onKeyDown={(e) => handleKeyDown(e, buyRef)}
             placeholder="0.00"
           />
         </div>
 
         <div className="form-group">
-          <label>BUYING PRICE</label>
+          <label>BUYING PRICE (OPTIONAL)</label>
           <input
             ref={buyRef}
             type="number"
@@ -278,12 +299,12 @@ export default function ProductForm({ onProductSaved }: ProductFormProps) {
             value={buyingPrice}
             onChange={(e) => setBuyingPrice(e.target.value)}
             onKeyDown={(e) => handleKeyDown(e, sellRef)}
-            placeholder="0.00"
+            placeholder="Defaults to MRP if empty"
           />
         </div>
 
         <div className="form-group">
-          <label>SELLING PRICE</label>
+          <label>SELLING PRICE (OPTIONAL)</label>
           <input
             ref={sellRef}
             type="number"
@@ -293,7 +314,7 @@ export default function ProductForm({ onProductSaved }: ProductFormProps) {
             value={sellingPrice}
             onChange={(e) => setSellingPrice(e.target.value)}
             onKeyDown={(e) => handleKeyDown(e, stockRef)}
-            placeholder="0.00"
+            placeholder="Defaults to MRP if empty"
           />
         </div>
 
@@ -307,7 +328,7 @@ export default function ProductForm({ onProductSaved }: ProductFormProps) {
             value={openingStock}
             onChange={(e) => setOpeningStock(e.target.value)}
             onKeyDown={(e) => handleKeyDown(e, expiryRef)}
-            placeholder="0"
+            placeholder="1"
           />
         </div>
 

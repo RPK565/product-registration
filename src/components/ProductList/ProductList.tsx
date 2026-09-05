@@ -66,8 +66,8 @@ export default function ProductList() {
     const trimmedBarcode = editForm.barcode.trim();
     const trimmedName = editForm.productName.trim();
     const parsedMrp = parseFloat(editForm.mrp);
-    const parsedBuy = parseFloat(editForm.buyingPrice);
-    const parsedSell = parseFloat(editForm.sellingPrice);
+    const parsedBuy = editForm.buyingPrice.trim() === '' ? parsedMrp : parseFloat(editForm.buyingPrice);
+    const parsedSell = editForm.sellingPrice.trim() === '' ? parsedMrp : parseFloat(editForm.sellingPrice);
     const parsedStock = parseInt(editForm.openingStock, 10);
 
     if (!trimmedBarcode) {
